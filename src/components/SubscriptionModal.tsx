@@ -1,10 +1,24 @@
+import { useState } from 'react';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { Check, Star, Shield, Truck } from 'lucide-react';
+import PaymentModal from './PaymentModal';
 
 export default function SubscriptionModal() {
-    const { plan, startTrial, upgradePlan } = useSubscription();
+    const { plan, startTrial } = useSubscription();
+    const [selectedPlan, setSelectedPlan] = useState<'standard' | 'premium' | null>(null);
 
     if (plan !== 'none') return null;
+
+    if (selectedPlan) {
+        return (
+            <PaymentModal
+                plan={selectedPlan}
+                amount={selectedPlan === 'standard' ? 75 : 150}
+                onClose={() => setSelectedPlan(null)}
+                onSuccess={() => setSelectedPlan(null)}
+            />
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-[2000] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -57,7 +71,7 @@ export default function SubscriptionModal() {
                         <div className="grid md:grid-cols-2 gap-4 mt-4">
                             {/* Standard */}
                             <button
-                                onClick={() => upgradePlan('standard')}
+                                onClick={() => setSelectedPlan('standard')}
                                 className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 transition-all text-left"
                             >
                                 <h3 className="font-bold text-slate-800 dark:text-white">Standard GPS</h3>
@@ -71,7 +85,7 @@ export default function SubscriptionModal() {
 
                             {/* Premium */}
                             <button
-                                onClick={() => upgradePlan('premium')}
+                                onClick={() => setSelectedPlan('premium')}
                                 className="p-4 border-2 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10 rounded-xl hover:bg-yellow-50 transition-all text-left relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 bg-yellow-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl">BEST VALUE</div>

@@ -111,7 +111,7 @@ export const subscribeToReports = (callback: (reports: CommunityReport[]) => voi
     return unsubscribe;
 };
 
-export const addReport = async (type: ReportType, location: [number, number]): Promise<void> => {
+export const addReport = async (type: ReportType, location: [number, number], userId: string = 'anonymous'): Promise<void> => {
     if (!USE_FIREBASE || !db) {
         addMockReport(type, location);
         return;
@@ -123,7 +123,7 @@ export const addReport = async (type: ReportType, location: [number, number]): P
             location,
             timestamp: Date.now(),
             votes: 0,
-            reporterId: 'current-user' // TODO: Use actual auth ID
+            reporterId: userId
         });
     } catch (e) {
         console.error("Error adding report:", e);

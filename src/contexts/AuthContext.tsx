@@ -23,8 +23,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!auth) {
-            setLoading(false);
-            return;
+            const timer = setTimeout(() => setLoading(false), 0);
+            return () => clearTimeout(timer);
         }
 
         // Listen for auth state changes
@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {

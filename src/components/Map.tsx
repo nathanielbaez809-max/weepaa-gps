@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { POI } from '../services/mockRouting';
+import type { POI } from '../services/routing';
 import type { FuelPrice } from '../services/fuel';
 import type { ParkingStatus } from '../services/parking';
 import type { CommunityReport } from '../services/reports';
@@ -13,7 +13,7 @@ import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
+const DefaultIcon = L.icon({
     iconUrl: icon,
     shadowUrl: iconShadow,
     iconSize: [25, 41],

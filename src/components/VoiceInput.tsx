@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 
 interface VoiceInputProps {
@@ -8,16 +8,32 @@ interface VoiceInputProps {
 export default function VoiceInput({ onCommand }: VoiceInputProps) {
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState("");
+    const [isSupported] = useState(() => 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null);
 
+    const handleCommand = useCallback((text: string) => {
+        if (text.includes("fuel") || text.includes("gas") || text.includes("diesel")) {
+            onCommand("find_fuel");
+        } else if (text.includes("accident") || text.includes("crash")) {
+            onCommand("report_accident");
+        } else if (text.includes("stop") || text.includes("cancel")) {
+            onCommand("stop_navigation");
+        } else {
+            onCommand("unknown");
+        }
+    }, [onCommand]);
+
     useEffect(() => {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        if (isSupported) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             recognitionRef.current = new SpeechRecognition();
             recognitionRef.current.continuous = false;
             recognitionRef.current.interimResults = false;
             recognitionRef.current.lang = 'en-US';
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             recognitionRef.current.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript.toLowerCase();
                 setTranscript(transcript);
@@ -25,6 +41,7 @@ export default function VoiceInput({ onCommand }: VoiceInputProps) {
                 setIsListening(false);
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             recognitionRef.current.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
                 setIsListening(false);
@@ -36,19 +53,7 @@ export default function VoiceInput({ onCommand }: VoiceInputProps) {
         } else {
             console.warn("Speech Recognition API not supported.");
         }
-    }, []);
-
-    const handleCommand = (text: string) => {
-        if (text.includes("fuel") || text.includes("gas") || text.includes("diesel")) {
-            onCommand("find_fuel");
-        } else if (text.includes("accident") || text.includes("crash")) {
-            onCommand("report_accident");
-        } else if (text.includes("stop") || text.includes("cancel")) {
-            onCommand("stop_navigation");
-        } else {
-            onCommand("unknown");
-        }
-    };
+    }, [isSupported, handleCommand]);
 
     const toggleListening = () => {
         if (isListening) {
@@ -60,7 +65,7 @@ export default function VoiceInput({ onCommand }: VoiceInputProps) {
         }
     };
 
-    if (!recognitionRef.current) return null;
+    if (!isSupported) return null;
 
     return (
         <div className="absolute bottom-32 right-4 z-[1000]">

@@ -1,4 +1,4 @@
-import type { POI } from './mockRouting';
+import type { POI } from './routing';
 
 export interface FuelPrice {
     poiId: string;

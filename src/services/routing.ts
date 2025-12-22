@@ -1,6 +1,5 @@
 import { geocode } from './geocoding';
 
-
 export type POIType = 'gas' | 'weigh-station' | 'rest-area' | 'food' | 'truck-stop';
 
 export interface POI {
@@ -30,6 +29,33 @@ export interface RouteData {
         weightCompliant: boolean;
         detourTimeAdded?: string;
     };
+}
+
+interface RoutingVehicleSpecs {
+    vehicleHeight?: string;
+    vehicleWeight?: number;
+    hazmat?: string;
+}
+
+interface OSRMStep {
+    maneuver: {
+        type: string;
+        modifier?: string;
+        location: [number, number];
+    };
+    name: string;
+    distance: number;
+    duration: number;
+    geometry: {
+        coordinates: [number, number][];
+        type: string;
+    };
+}
+
+interface OSRMLeg {
+    steps: OSRMStep[];
+    distance: number;
+    duration: number;
 }
 
 // Helper to generate random POIs along the route
@@ -75,7 +101,7 @@ const generatePoisAlongRoute = (coordinates: [number, number][], isTruck: boolea
 export const calculateRoute = async (
     start: string,
     end: string,
-    truckSpecs: any,
+    truckSpecs: RoutingVehicleSpecs,
     waypoints: string[] = [],
     avoidWeighStations: boolean = false
 ): Promise<RouteData> => {
@@ -136,14 +162,36 @@ export const calculateRoute = async (
     });
 
     // Generate POIs along the route
-    const isTruck = truckSpecs && (truckSpecs.vehicleWeight > 10000 || parseInt(truckSpecs.vehicleHeight) > 0);
+    const isTruck = truckSpecs && ((truckSpecs.vehicleWeight || 0) > 10000 || parseInt(truckSpecs.vehicleHeight || "0") > 0);
     const pois = generatePoisAlongRoute(coordinates, isTruck);
 
-    const instructions = route.legs.flatMap((leg: any) => leg.steps.map((step: any) => ({
-        instruction: step.maneuver.type === 'arrive' ? "Arrive at waypoint" : step.name || "Continue",
-        distance: (step.distance / 1609.34).toFixed(1) + " mi",
-        icon: getInstructionIcon(step.maneuver.type)
-    })));
+    // Improved instruction parsing
+    const instructions: RouteInstruction[] = route.legs.flatMap((leg: OSRMLeg) => leg.steps.map((step: OSRMStep) => {
+        let text = step.maneuver.type;
+        if (step.maneuver.modifier) {
+            text += ` ${step.maneuver.modifier}`;
+        }
+        if (step.name) {
+            text += ` on ${step.name}`;
+        }
+
+        // Clean up text
+        text = text.replace('turn right', 'Turn right')
+            .replace('turn left', 'Turn left')
+            .replace('new name', 'Continue')
+            .replace('depart', 'Head')
+            .replace('arrive', 'Arrive at destination');
+
+        if (step.maneuver.type === 'arrive') {
+            text = "Arrive at destination";
+        }
+
+        return {
+            instruction: text,
+            distance: (step.distance / 1609.34).toFixed(1) + " mi",
+            icon: getInstructionIcon(step.maneuver.type)
+        };
+    }));
 
     if (avoidWeighStations) {
         instructions.unshift({
@@ -172,7 +220,7 @@ export const calculateRoute = async (
     return {
         coordinates,
         distance: (route.distance / 1609.34).toFixed(1) + " mi", // meters to miles
-        duration: Math.round(route.duration / 60) + " min", // seconds to minutes
+        duration: formatDuration(route.duration),
         instructions,
         pois,
         safetyCheck: safetyMetadata
@@ -185,3 +233,10 @@ const getInstructionIcon = (type: string): 'straight' | 'right' | 'left' | 'dest
     if (type === 'arrive') return 'destination';
     return 'straight';
 };
+
+function formatDuration(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours} hr ${minutes} min`;
+    return `${minutes} min`;
+}

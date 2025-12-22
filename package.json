@@ -1,7 +1,7 @@
 {
   "name": "weepaa-truck-gps",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "firebase": "^12.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.554.0",

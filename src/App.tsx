@@ -6,17 +6,17 @@ import PoiPrompt from './components/PoiPrompt';
 import ReportButton from './components/ReportButton';
 import Speedometer from './components/Speedometer';
 import { type VehicleSpecs } from './components/VehicleProfile';
-import { calculateRoute, type RouteData, type POI } from './services/mockRouting';
+import { calculateRoute, type RouteData, type POI } from './services/routing';
 import { speak } from './services/tts';
 import { checkForWeatherAlerts, type WeatherAlert } from './services/weather';
 import { getFuelPrices, type FuelPrice } from './services/fuel';
 import { getParkingStatus, type ParkingStatus } from './services/parking';
-import { subscribeToReports, type CommunityReport } from './services/reports';
+import { subscribeToReports, addReport, type CommunityReport } from './services/reports';
 import { AlertTriangle, User } from 'lucide-react';
 import VoiceInput from './components/VoiceInput';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { GamificationProvider, useGamification } from './contexts/GamificationContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import OfflineIndicator from './components/OfflineIndicator';
 import VehicleSetupWizard from './components/VehicleSetupWizard';
@@ -28,11 +28,12 @@ const SubscriptionModal = lazy(() => import('./components/SubscriptionModal'));
 const ProfilePanel = lazy(() => import('./components/ProfilePanel'));
 
 function App() {
+  const { user } = useAuth();
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<[number, number] | undefined>(undefined);
-  const [_routeIndex, setRouteIndex] = useState(0);
+  // const [_routeIndex, setRouteIndex] = useState(0); // Unused
   const [activePoiPrompt, setActivePoiPrompt] = useState<POI | null>(null);
 
   // Advanced Features State
@@ -107,7 +108,7 @@ function App() {
             // Fallback to route start point
             if (data.coordinates.length > 0) {
               setCurrentLocation(data.coordinates[0]);
-              setRouteIndex(0);
+              // setRouteIndex(0);
               speak("Starting navigation. Truck route calculated.");
             }
           }
@@ -116,7 +117,7 @@ function App() {
         // No GPS available, use route start point
         if (data.coordinates.length > 0) {
           setCurrentLocation(data.coordinates[0]);
-          setRouteIndex(0);
+          // setRouteIndex(0);
           speak("Starting navigation. Truck route calculated.");
         }
       }
@@ -131,7 +132,7 @@ function App() {
     setIsNavigating(false);
     setRouteData(null);
     setCurrentLocation(undefined);
-    setRouteIndex(0);
+    // setRouteIndex(0);
     setActivePoiPrompt(null);
     setCurrentSpeed(0);
     if (simulationInterval.current) {
@@ -186,8 +187,12 @@ function App() {
         }
         break;
       case 'report_accident':
-        // handleUserReport('accident'); // TODO: Update to use new ReportService
-        speak("Please use the report button to report accidents.");
+        if (currentLocation) {
+          addReport('accident', currentLocation, user?.uid);
+          speak("Accident reported. Thank you.");
+        } else {
+          speak("GPS location unavailable. Cannot report accident.");
+        }
         break;
       case 'stop_navigation':
         handleStopNavigation();
@@ -201,37 +206,34 @@ function App() {
   // Simulation Loop
   useEffect(() => {
     if (isNavigating && routeData) {
+      let routeIndex = 0;
       simulationInterval.current = window.setInterval(() => {
-        setRouteIndex(prev => {
-          const nextIndex = prev + 1;
-          if (nextIndex >= routeData.coordinates.length) {
-            if (simulationInterval.current) clearInterval(simulationInterval.current);
-            speak("You have arrived at your destination.");
-            setCurrentSpeed(0);
-            return prev;
+        routeIndex++;
+        if (routeIndex >= routeData.coordinates.length) {
+          if (simulationInterval.current) clearInterval(simulationInterval.current);
+          speak("You have arrived at your destination.");
+          setCurrentSpeed(0);
+          return;
+        }
+
+        const nextLoc = routeData.coordinates[routeIndex];
+        setCurrentLocation(nextLoc);
+
+        // Simulate Speed (random between 55 and 75 mph)
+        const simulatedSpeed = 55 + Math.random() * 20;
+        setCurrentSpeed(simulatedSpeed);
+
+        // Simple instruction trigger logic (demo only)
+        if (routeIndex === 5) speak("Head east.");
+
+        // Trigger Weigh Station Prompt at specific index
+        if (routeIndex === 20) {
+          const weighStation = routeData.pois.find(p => p.type === 'weigh-station');
+          if (weighStation && (!weighStation.status || weighStation?.status === 'unknown')) {
+            setActivePoiPrompt(weighStation);
+            speak("Approaching weigh station. Is it open?");
           }
-
-          const nextLoc = routeData.coordinates[nextIndex];
-          setCurrentLocation(nextLoc);
-
-          // Simulate Speed (random between 55 and 75 mph)
-          const simulatedSpeed = 55 + Math.random() * 20;
-          setCurrentSpeed(simulatedSpeed);
-
-          // Simple instruction trigger logic (demo only)
-          if (nextIndex === 5) speak("Head east.");
-
-          // Trigger Weigh Station Prompt at specific index
-          if (nextIndex === 20) {
-            const weighStation = routeData.pois.find(p => p.type === 'weigh-station');
-            if (weighStation && (!weighStation.status || weighStation?.status === 'unknown')) {
-              setActivePoiPrompt(weighStation);
-              speak("Approaching weigh station. Is it open?");
-            }
-          }
-
-          return nextIndex;
-        });
+        }
       }, 1000); // Move every 1 second for smoother speed updates
     }
 

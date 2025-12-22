@@ -25,7 +25,8 @@ export default function VehicleProfile({ isOpen, onClose, onSave, initialSpecs }
 
     useEffect(() => {
         if (initialSpecs) {
-            setSpecs(initialSpecs);
+            const timer = setTimeout(() => setSpecs(initialSpecs), 0);
+            return () => clearTimeout(timer);
         }
     }, [initialSpecs]);
 

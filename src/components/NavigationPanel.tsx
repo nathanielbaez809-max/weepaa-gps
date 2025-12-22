@@ -1,5 +1,5 @@
 import { ArrowRight, ArrowLeft, ArrowUp, MapPin, ShieldCheck } from 'lucide-react';
-import type { RouteData, RouteInstruction } from '../services/mockRouting';
+import type { RouteData, RouteInstruction } from '../services/routing';
 
 interface NavigationPanelProps {
     instructions: RouteInstruction[];

@@ -118,6 +118,9 @@ export default function ProfilePanel({ onClose }: ProfilePanelProps) {
                     </li>
                 </ol>
             </div>
+            <div className="mt-4 text-center">
+                <p className="text-[10px] text-slate-400">Version 1.0.0</p>
+            </div>
         </div>
     );
 }

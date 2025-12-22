@@ -20,6 +20,7 @@
 - **Offline Mode**: Works even when you lose signal.
 - **Fuel Finder**: Locate the cheapest diesel along your route.
 - **Weather Alerts**: Heads-up warnings for severe weather ahead.
+- **Voice Control**: Hands-free commands ("Find fuel", "Report accident") to keep you safe.
 
 ## 💻 Tech Stack
 - **Frontend**: React, TypeScript, Vite

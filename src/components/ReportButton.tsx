@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { AlertTriangle, ShieldAlert, Construction, Scale, ParkingSquare, Plus } from 'lucide-react';
 import { addReport, type ReportType } from '../services/reports';
 
+import { useAuth } from '../contexts/AuthContext';
+
 interface ReportButtonProps {
     currentLocation: [number, number] | undefined;
     onReportAdded: () => void;
@@ -9,10 +11,11 @@ interface ReportButtonProps {
 
 export default function ReportButton({ currentLocation, onReportAdded }: ReportButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const { user } = useAuth();
 
     const handleReport = (type: ReportType) => {
         if (currentLocation) {
-            addReport(type, currentLocation);
+            addReport(type, currentLocation, user?.uid);
             onReportAdded();
             setIsOpen(false);
         }

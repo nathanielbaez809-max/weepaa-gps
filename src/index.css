@@ -2,9 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900;
+    }
+
+    /* Premium Selection Color */
+    ::selection {
+        @apply bg-blue-500/30 text-blue-900 dark:text-blue-100;
+    }
+}
+
 @layer utilities {
     .animate-fade-in {
         animation: fade-in 0.3s ease-out forwards;
+    }
+
+    .glass-panel {
+        @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border border-white/20 dark:border-gray-700/30 shadow-xl;
     }
 
     @keyframes fade-in {
@@ -20,7 +40,21 @@
     }
 }
 
-/* Custom Scrollbar for Panels */
+/* Custom Scrollbar for Webkit */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors;
+}
+
+/* Hide Scrollbar Utility */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
