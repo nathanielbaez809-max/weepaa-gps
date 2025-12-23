@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import { Check, Star, Shield, Truck } from 'lucide-react';
+import { Check, Star, Shield, Truck, Zap, MapPin, Fuel, ChevronRight } from 'lucide-react';
 import PaymentModal from './PaymentModal';
+import Logo from './Logo';
+import heroBg from '../assets/hero_bg.png';
 
 export default function SubscriptionModal() {
     const { plan, startTrial } = useSubscription();
@@ -20,89 +22,211 @@ export default function SubscriptionModal() {
         );
     }
 
+    const features = {
+        standard: [
+            { icon: Truck, text: 'Truck-Safe Routing', description: 'Height, weight, hazmat' },
+            { icon: MapPin, text: 'Smart Parking', description: 'Real-time availability' },
+            { icon: Fuel, text: 'Fuel Finder', description: 'Cheapest diesel prices' },
+        ],
+        premium: [
+            { icon: Zap, text: 'Weigh Station Avoidance', description: 'Bypass open scales', highlight: true },
+            { icon: Shield, text: 'Offline Satellite Maps', description: 'Navigate without signal' },
+            { icon: Star, text: 'Priority Support', description: '24/7 driver assistance' },
+        ],
+    };
+
     return (
-        <div className="fixed inset-0 z-[2000] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col md:flex-row">
+        <div
+            className="fixed inset-0 z-[2000] flex items-center justify-center p-4 hero-bg"
+            style={{ backgroundImage: `url(${heroBg})` }}
+            role="dialog"
+            aria-label="Choose your subscription plan"
+        >
+            {/* Dark overlay */}
+            <div className="hero-overlay" aria-hidden="true" />
 
-                {/* Left Side: Branding */}
-                <div className="bg-blue-600 p-8 text-white md:w-1/3 flex flex-col justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold mb-2">Weepaa Truck GPS</h1>
-                        <p className="text-blue-100">The Professional's Choice.</p>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <Shield className="w-6 h-6" />
-                            <span>Truck-Safe Routing</span>
+            {/* Modal content */}
+            <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-premium max-w-4xl w-full overflow-hidden animate-scale-in">
+                <div className="flex flex-col lg:flex-row">
+                    {/* Left Side: Branding */}
+                    <div className="gradient-hero p-8 lg:w-2/5 flex flex-col justify-between text-white">
+                        <div>
+                            <Logo size="lg" showTagline={false} className="mb-6" />
+                            <h1 className="text-3xl font-bold font-display mb-3">
+                                The Professional's<br />Choice
+                            </h1>
+                            <p className="text-primary-100 text-sm leading-relaxed">
+                                Join 50,000+ truck drivers who trust Weepaa for safe, efficient navigation every day.
+                            </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <Star className="w-6 h-6" />
-                            <span>Smart Parking</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Truck className="w-6 h-6" />
-                            <span>Weigh Station Avoidance</span>
-                        </div>
-                    </div>
-                    <div className="text-sm text-blue-200 mt-8">
-                        Join 50,000+ drivers saving time and money.
-                    </div>
-                </div>
 
-                {/* Right Side: Plans */}
-                <div className="p-8 md:w-2/3">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">Choose Your Plan</h2>
-
-                    <div className="grid gap-4">
-                        {/* Free Trial */}
-                        <button
-                            onClick={startTrial}
-                            className="w-full p-4 border-2 border-blue-600 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left group"
-                        >
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-bold text-blue-600 text-lg">30-Day Free Trial</h3>
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm">Full access to Weepaa Premium features.</p>
+                        <div className="space-y-4 mt-8">
+                            <div className="flex items-center gap-3 text-white/90">
+                                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <Shield className="w-5 h-5" />
                                 </div>
-                                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">POPULAR</span>
+                                <span className="font-medium">Height & weight compliant routes</span>
                             </div>
-                        </button>
+                            <div className="flex items-center gap-3 text-white/90">
+                                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <MapPin className="w-5 h-5" />
+                                </div>
+                                <span className="font-medium">Real-time truck parking availability</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-white/90">
+                                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <Fuel className="w-5 h-5" />
+                                </div>
+                                <span className="font-medium">Save on fuel with price alerts</span>
+                            </div>
+                        </div>
 
-                        <div className="grid md:grid-cols-2 gap-4 mt-4">
-                            {/* Standard */}
-                            <button
-                                onClick={() => setSelectedPlan('standard')}
-                                className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 transition-all text-left"
-                            >
-                                <h3 className="font-bold text-slate-800 dark:text-white">Standard GPS</h3>
-                                <div className="text-2xl font-bold mt-2">$75 <span className="text-sm font-normal text-slate-500">/ year</span></div>
-                                <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex gap-2"><Check className="w-4 h-4 text-green-500" /> Truck Routing</li>
-                                    <li className="flex gap-2"><Check className="w-4 h-4 text-green-500" /> Smart Parking</li>
-                                    <li className="flex gap-2"><Check className="w-4 h-4 text-green-500" /> Fuel Saver</li>
-                                </ul>
-                            </button>
-
-                            {/* Premium */}
-                            <button
-                                onClick={() => setSelectedPlan('premium')}
-                                className="p-4 border-2 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10 rounded-xl hover:bg-yellow-50 transition-all text-left relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 right-0 bg-yellow-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl">BEST VALUE</div>
-                                <h3 className="font-bold text-slate-800 dark:text-white">Weepaa Premium</h3>
-                                <div className="text-2xl font-bold mt-2">$150 <span className="text-sm font-normal text-slate-500">/ year</span></div>
-                                <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex gap-2"><Check className="w-4 h-4 text-green-500" /> <strong>Everything in Standard</strong></li>
-                                    <li className="flex gap-2"><Check className="w-4 h-4 text-green-500" /> <strong>Weigh Station Avoidance</strong></li>
-                                    <li className="flex gap-2"><Check className="w-4 h-4 text-green-500" /> Offline Satellite Maps</li>
-                                </ul>
-                            </button>
+                        <div className="mt-8 pt-6 border-t border-white/20">
+                            <div className="flex items-center gap-2">
+                                <div className="flex -space-x-2">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div
+                                            key={i}
+                                            className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-xs font-bold"
+                                        >
+                                            {['JD', 'MK', 'RL', 'TB'][i - 1]}
+                                        </div>
+                                    ))}
+                                </div>
+                                <span className="text-sm text-white/80 ml-2">
+                                    <strong>4.9★</strong> from 12,000+ reviews
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <p className="text-center text-xs text-slate-400 mt-6">
-                        Secure payment processed by Stripe. Cancel anytime.
-                    </p>
+                    {/* Right Side: Plans */}
+                    <div className="p-8 lg:w-3/5">
+                        <h2 className="text-2xl font-bold font-display text-slate-800 dark:text-white mb-6">
+                            Choose Your Plan
+                        </h2>
+
+                        <div className="space-y-4">
+                            {/* Free Trial - Highlighted */}
+                            <button
+                                onClick={startTrial}
+                                className="w-full p-5 rounded-2xl border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-all group text-left"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-primary-500 rounded-xl text-white">
+                                            <Zap className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-bold text-primary-700 dark:text-primary-400 text-lg">
+                                                    30-Day Free Trial
+                                                </h3>
+                                                <span className="bg-primary-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                                                    Most Popular
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                Full access to all Premium features
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-primary-500 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </button>
+
+                            {/* Plan Cards */}
+                            <div className="grid lg:grid-cols-2 gap-4">
+                                {/* Standard Plan */}
+                                <button
+                                    onClick={() => setSelectedPlan('standard')}
+                                    className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-lg transition-all text-left group"
+                                >
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-lg">Standard GPS</h3>
+                                    <div className="mt-2">
+                                        <span className="text-3xl font-black font-display text-slate-900 dark:text-white">$75</span>
+                                        <span className="text-slate-500 dark:text-slate-400 text-sm ml-1">/year</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">~$6.25/month</p>
+
+                                    <ul className="mt-4 space-y-2.5">
+                                        {features.standard.map((feature, i) => {
+
+                                            return (
+                                                <li key={i} className="flex items-start gap-2">
+                                                    <Check className="w-4 h-4 text-success-500 flex-shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                                                            {feature.text}
+                                                        </span>
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </button>
+
+                                {/* Premium Plan - Highlighted */}
+                                <button
+                                    onClick={() => setSelectedPlan('premium')}
+                                    className="relative p-5 rounded-2xl border-2 border-warning-400 bg-gradient-to-br from-warning-50 to-white dark:from-warning-900/20 dark:to-slate-900 hover:shadow-xl transition-all text-left group overflow-hidden"
+                                >
+                                    {/* Best Value Badge */}
+                                    <div className="absolute top-0 right-0 bg-warning-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl">
+                                        BEST VALUE
+                                    </div>
+
+                                    <h3 className="font-bold text-slate-800 dark:text-white text-lg">Weepaa Premium</h3>
+                                    <div className="mt-2">
+                                        <span className="text-3xl font-black font-display text-slate-900 dark:text-white">$150</span>
+                                        <span className="text-slate-500 dark:text-slate-400 text-sm ml-1">/year</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">~$12.50/month</p>
+
+                                    <ul className="mt-4 space-y-2.5">
+                                        <li className="flex items-start gap-2">
+                                            <Check className="w-4 h-4 text-success-500 flex-shrink-0 mt-0.5" />
+                                            <span className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
+                                                Everything in Standard
+                                            </span>
+                                        </li>
+                                        {features.premium.map((feature, i) => {
+
+                                            return (
+                                                <li key={i} className="flex items-start gap-2">
+                                                    <Check className="w-4 h-4 text-warning-500 flex-shrink-0 mt-0.5" />
+                                                    <span className={`text-sm font-medium ${feature.highlight
+                                                        ? 'text-warning-700 dark:text-warning-400'
+                                                        : 'text-slate-700 dark:text-slate-300'
+                                                        }`}>
+                                                        {feature.text}
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Trust Badges */}
+                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400 dark:text-slate-500">
+                                <div className="flex items-center gap-1.5">
+                                    <Shield className="w-4 h-4" />
+                                    <span>SSL Secure</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Check className="w-4 h-4" />
+                                    <span>Cancel Anytime</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Star className="w-4 h-4" />
+                                    <span>Money-Back Guarantee</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -22,54 +22,131 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// We can create custom icons using L.divIcon with Lucide icons inside
-const createCustomIcon = (color: string, type: 'truck' | 'coffee' | 'scale' | 'alert') => {
+// Premium SVG icon factory with consistent styling
+const createPremiumIcon = (color: string, bgColor: string, iconPath: string, size: number = 40) => {
     const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 drop-shadow-md">
-      <circle cx="12" cy="12" r="10" fill="white" stroke="${color}" stroke-width="2" />
-      <circle cx="12" cy="12" r="8" fill="${color}" />
-      ${type === 'truck' ? '<path d="M10 17h4V5H2v12h3v0h7v0zM20 17h2v-3.34l-4-5.34V17h2z" fill="white" stroke="none"/>' : ''}
-      ${type === 'coffee' ? '<path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" fill="none" stroke="white"/>' : ''}
-      ${type === 'scale' ? '<path d="M12 3v18M6 8h12M6 16h12" fill="none" stroke="white"/>' : ''} 
-      ${type === 'alert' ? '<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" fill="none" stroke="white"/>' : ''}
-    </svg>
-  `;
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+            <defs>
+                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+                </filter>
+            </defs>
+            <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 2}" fill="${bgColor}" stroke="white" stroke-width="3" filter="url(#shadow)"/>
+            <g transform="translate(${size / 4}, ${size / 4})" fill="${color}" stroke="${color}" stroke-width="0">
+                ${iconPath}
+            </g>
+        </svg>
+    `;
 
     return L.divIcon({
-        className: 'custom-icon',
+        className: 'custom-premium-icon',
         html: svg,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32]
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size],
+        popupAnchor: [0, -size]
     });
 };
 
-const truckIcon = createCustomIcon('#2563eb', 'truck'); // Blue
-const restIcon = createCustomIcon('#16a34a', 'coffee'); // Green
-const weighIcon = createCustomIcon('#9333ea', 'scale'); // Purple
-const alertIcon = createCustomIcon('#dc2626', 'alert'); // Red
-const gasIcon = createCustomIcon('#ea580c', 'truck'); // Orange
-const scaleIcon = createCustomIcon('#9333ea', 'scale'); // Purple
-const parkingIcon = createCustomIcon('#ef4444', 'truck'); // Red for full parking
-
-const getCustomPoiIcon = (type: string) => {
-    switch (type) {
-        case 'truck-stop': return truckIcon;
-        case 'rest-area': return restIcon;
-        case 'weigh-station': return weighIcon;
-        case 'gas': return gasIcon;
-        default: return DefaultIcon;
-    }
+// Icon path definitions (simplified versions of Lucide icons)
+const ICON_PATHS = {
+    truck: '<path d="M16 3h-8a2 2 0 0 0-2 2v10h2V5h8v6h2V5a2 2 0 0 0-2-2z"/><rect x="1" y="11" width="14" height="6" rx="1"/><circle cx="4.5" cy="17" r="2"/><circle cx="11.5" cy="17" r="2"/>',
+    fuel: '<path d="M3 22V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v18H3z"/><path d="M13 12h4a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V8l-4-4"/>',
+    coffee: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/>',
+    scale: '<path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+    alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    parking: '<circle cx="12" cy="12" r="10"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
 };
 
-const getCustomReportIcon = (type: string) => {
-    switch (type) {
-        case 'scale_open': return scaleIcon;
-        case 'scale_closed': return scaleIcon;
-        case 'parking_full': return parkingIcon;
-        default: return alertIcon;
-    }
+// Color schemes for different POI types
+const POI_COLORS = {
+    'truck-stop': { bg: '#2563eb', fg: '#ffffff' },   // Primary blue
+    'gas': { bg: '#ea580c', fg: '#ffffff' },          // Accent orange
+    'rest-area': { bg: '#16a34a', fg: '#ffffff' },    // Success green
+    'weigh-station': { bg: '#9333ea', fg: '#ffffff' }, // Purple
+    'food': { bg: '#f59e0b', fg: '#ffffff' },         // Warning yellow
 };
+
+const REPORT_COLORS = {
+    'police': { bg: '#3b82f6', fg: '#ffffff' },
+    'accident': { bg: '#ef4444', fg: '#ffffff' },
+    'hazard': { bg: '#f59e0b', fg: '#ffffff' },
+    'scale_open': { bg: '#9333ea', fg: '#ffffff' },
+    'scale_closed': { bg: '#22c55e', fg: '#ffffff' },
+    'parking_full': { bg: '#ef4444', fg: '#ffffff' },
+};
+
+// Create icons
+const getPoiIcon = (type: string) => {
+    const colors = POI_COLORS[type as keyof typeof POI_COLORS] || POI_COLORS['gas'];
+    let iconPath = ICON_PATHS.fuel;
+
+    switch (type) {
+        case 'truck-stop': iconPath = ICON_PATHS.truck; break;
+        case 'rest-area': iconPath = ICON_PATHS.coffee; break;
+        case 'weigh-station': iconPath = ICON_PATHS.scale; break;
+        case 'food': iconPath = ICON_PATHS.coffee; break;
+    }
+
+    return createPremiumIcon(colors.fg, colors.bg, iconPath);
+};
+
+const getReportIcon = (type: string) => {
+    const colors = REPORT_COLORS[type as keyof typeof REPORT_COLORS] || REPORT_COLORS['hazard'];
+    const iconPath = type.includes('scale') ? ICON_PATHS.scale :
+        type === 'parking_full' ? ICON_PATHS.parking : ICON_PATHS.alert;
+
+    return createPremiumIcon(colors.fg, colors.bg, iconPath);
+};
+
+// Current location truck icon
+const truckLocationIcon = L.divIcon({
+    className: 'truck-location-icon',
+    html: `
+        <div style="
+            width: 48px;
+            height: 48px;
+            position: relative;
+        ">
+            <div style="
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, #3378ff, #1a56f5);
+                border-radius: 50%;
+                border: 4px solid white;
+                box-shadow: 0 4px 12px rgba(51, 120, 255, 0.5), 0 0 20px rgba(51, 120, 255, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+                    <path d="M15 18H9"/>
+                    <path d="M19 18h1a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.578-.502l-1.539-3.076A1 1 0 0 0 16.382 8H15"/>
+                    <circle cx="17" cy="18" r="2"/>
+                    <circle cx="7" cy="18" r="2"/>
+                </svg>
+            </div>
+            <div style="
+                position: absolute;
+                inset: -4px;
+                border-radius: 50%;
+                border: 2px solid rgba(51, 120, 255, 0.5);
+                animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+            "></div>
+        </div>
+        <style>
+            @keyframes ping {
+                75%, 100% {
+                    transform: scale(1.5);
+                    opacity: 0;
+                }
+            }
+        </style>
+    `,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    popupAnchor: [0, -24]
+});
 
 interface MapProps {
     routeCoordinates?: [number, number][];
@@ -85,7 +162,6 @@ interface MapProps {
 function MapUpdater({ coordinates, currentLocation }: { coordinates?: [number, number][], currentLocation?: [number, number] }) {
     const map = useMap();
 
-    // Fit bounds to route initially
     useEffect(() => {
         if (coordinates && coordinates.length > 0 && !currentLocation) {
             const bounds = L.latLngBounds(coordinates);
@@ -93,7 +169,6 @@ function MapUpdater({ coordinates, currentLocation }: { coordinates?: [number, n
         }
     }, [coordinates, map, currentLocation]);
 
-    // Follow current location
     useEffect(() => {
         if (currentLocation) {
             map.setView(currentLocation, 15, { animate: true });
@@ -103,24 +178,22 @@ function MapUpdater({ coordinates, currentLocation }: { coordinates?: [number, n
     return null;
 }
 
-// Helper to split route into traffic segments (mock)
+// Traffic segment generator with improved colors
 const getTrafficSegments = (coords: [number, number][]) => {
     const segments = [];
     let i = 0;
     while (i < coords.length - 1) {
-        // Random length for this segment
         const length = Math.floor(Math.random() * 20) + 5;
         const end = Math.min(i + length, coords.length);
         const segmentCoords = coords.slice(i, end);
 
-        // Ensure connectivity
         if (i > 0) segmentCoords.unshift(coords[i]);
 
-        // Random traffic status
         const rand = Math.random();
-        let color = '#22c55e'; // Green
-        if (rand > 0.8) color = '#ef4444'; // Red
-        else if (rand > 0.6) color = '#f97316'; // Orange
+        let color = '#22c55e'; // Green - flowing
+        if (rand > 0.85) color = '#dc2626'; // Red - heavy
+        else if (rand > 0.7) color = '#f97316'; // Orange - moderate
+        else if (rand > 0.5) color = '#84cc16'; // Light green - light
 
         segments.push({ coordinates: segmentCoords, color });
         i = end - 1;
@@ -129,7 +202,6 @@ const getTrafficSegments = (coords: [number, number][]) => {
 };
 
 export default function Map({ routeCoordinates, pois, currentLocation, communityReports, fuelPrices, parkingStatuses, darkMode = false, onReportVerified }: MapProps) {
-    // Default to center of US or a specific location
     const position: [number, number] = [39.8283, -98.5795];
     const displayPosition = currentLocation || position;
 
@@ -142,172 +214,188 @@ export default function Map({ routeCoordinates, pois, currentLocation, community
                             ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                             : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         }
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     />
                 </LayersControl.BaseLayer>
                 <LayersControl.BaseLayer name="Satellite">
                     <TileLayer
                         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                        attribution='Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        attribution='Tiles &copy; Esri'
                     />
                 </LayersControl.BaseLayer>
             </LayersControl>
 
-            {/* Show start marker if no route and no current location */}
-            {
-                !routeCoordinates && !currentLocation && (
-                    <Marker position={position}>
-                        <Popup>
-                            Center of the US. <br /> Ready to navigate.
-                        </Popup>
-                    </Marker>
-                )
-            }
+            {/* Default center marker when not navigating */}
+            {!routeCoordinates && !currentLocation && (
+                <Marker position={position}>
+                    <Popup>
+                        <div className="text-center p-2">
+                            <p className="font-bold text-slate-800">Ready to Navigate</p>
+                            <p className="text-sm text-slate-500">Enter your route to begin</p>
+                        </div>
+                    </Popup>
+                </Marker>
+            )}
 
             {/* Current Location / Truck Marker */}
-            {
-                currentLocation && (
-                    <Marker position={currentLocation} icon={DefaultIcon} zIndexOffset={1000}>
-                        <Popup>
-                            Current Location
-                        </Popup>
-                    </Marker>
-                )
-            }
+            {currentLocation && (
+                <Marker position={currentLocation} icon={truckLocationIcon} zIndexOffset={1000}>
+                    <Popup>
+                        <div className="text-center p-2">
+                            <p className="font-bold text-primary-600">Your Location</p>
+                            <p className="text-sm text-slate-500">
+                                {currentLocation[0].toFixed(4)}, {currentLocation[1].toFixed(4)}
+                            </p>
+                        </div>
+                    </Popup>
+                </Marker>
+            )}
 
-            {/* Route Line with Traffic Colors */}
-            {
-                routeCoordinates && routeCoordinates.length > 0 && (
-                    <>
-                        {/* 
-                        For demo purposes, we will split the route into segments and color them.
-                        In a real app, we'd get speed data for each segment.
-                    */}
-                        {getTrafficSegments(routeCoordinates).map((segment, i) => (
-                            <Polyline
-                                key={i}
-                                positions={segment.coordinates}
-                                color={segment.color}
-                                weight={6}
-                                opacity={0.8}
-                            />
-                        ))}
-                        <MapUpdater coordinates={routeCoordinates} currentLocation={currentLocation} />
-                    </>
-                )
-            }
+            {/* Route with Traffic Colors */}
+            {routeCoordinates && routeCoordinates.length > 0 && (
+                <>
+                    {/* Route shadow for depth */}
+                    <Polyline
+                        positions={routeCoordinates}
+                        color="#1e293b"
+                        weight={10}
+                        opacity={0.2}
+                    />
+
+                    {/* Traffic segments */}
+                    {getTrafficSegments(routeCoordinates).map((segment, i) => (
+                        <Polyline
+                            key={i}
+                            positions={segment.coordinates}
+                            color={segment.color}
+                            weight={6}
+                            opacity={0.9}
+                        />
+                    ))}
+
+                    <MapUpdater coordinates={routeCoordinates} currentLocation={currentLocation} />
+                </>
+            )}
 
             {/* POI Markers */}
-            {
-                pois && pois.map((poi) => {
-                    const priceInfo = fuelPrices?.find(p => p.poiId === poi.id);
+            {pois && pois.map((poi) => {
+                const priceInfo = fuelPrices?.find(p => p.poiId === poi.id);
+                const parkingInfo = parkingStatuses?.find(p => p.poiId === poi.id);
 
-                    return (
-                        <Marker key={poi.id} position={poi.location} icon={getCustomPoiIcon(poi.type)}>
-                            <Popup>
-                                <div className="p-1">
-                                    <h3 className="font-bold text-sm">{poi.name}</h3>
-                                    <p className="text-xs text-gray-500 capitalize">{poi.type.replace('-', ' ')}</p>
-
-                                    {/* Fuel Price Display */}
-                                    {priceInfo && (
-                                        <div className={`mt-2 p-1 rounded text-center ${priceInfo.isBestPrice ? 'bg-green-100 border border-green-500' : 'bg-gray-100'}`}>
-                                            <p className="text-xs text-gray-500">Diesel</p>
-                                            <p className={`font-bold ${priceInfo.isBestPrice ? 'text-green-700 text-lg' : 'text-gray-800'}`}>
-                                                ${priceInfo.price.toFixed(2)}
-                                            </p>
-                                            {priceInfo.isBestPrice && <p className="text-[10px] text-green-600 font-bold uppercase">Best Price</p>}
-                                        </div>
-                                    )}
-
-                                    {/* Parking Status Display */}
-                                    {parkingStatuses?.find(p => p.poiId === poi.id) && (
-                                        <div className="mt-2 border-t pt-1">
-                                            {(() => {
-                                                const status = parkingStatuses.find(p => p.poiId === poi.id)!;
-                                                let color = 'text-green-600';
-                                                if (status.status === 'Medium') color = 'text-yellow-600';
-                                                if (status.status === 'High' || status.status === 'Full') color = 'text-red-600';
-
-                                                return (
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-1">
-                                                            <div className={`w-4 h-4 rounded flex items-center justify-center text-white text-[10px] font-bold ${status.status === 'Full' ? 'bg-red-600' : 'bg-blue-600'}`}>P</div>
-                                                            <span className={`text-xs font-bold ${color}`}>{status.availableSpots} spots</span>
-                                                        </div>
-                                                        <span className="text-[10px] text-gray-500 italic">{status.prediction}</span>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* Status Indicator */}
-                                    {poi.status && poi.status !== 'unknown' && (
-                                        <div className={`mt-1 text-xs font-bold flex items-center gap-1 ${poi.status === 'open' ? 'text-green-600' : 'text-red-600'}`}>
-                                            <span className={`w-2 h-2 rounded-full ${poi.status === 'open' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                            {poi.status.toUpperCase()}
-                                        </div>
-                                    )}
-
-                                    {poi.amenities && (
-                                        <div className="mt-1 flex flex-wrap gap-1">
-                                            {poi.amenities.map(a => (
-                                                <span key={a} className="text-[10px] bg-blue-100 text-blue-800 px-1 rounded">
-                                                    {a}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </Popup>
-                        </Marker>
-                    )
-                })
-            }
-
-            {/* Community Reports */}
-            {
-                communityReports && communityReports.map((report) => (
-                    <Marker key={report.id} position={report.location} icon={getCustomReportIcon(report.type)}>
+                return (
+                    <Marker key={poi.id} position={poi.location} icon={getPoiIcon(poi.type)}>
                         <Popup>
-                            <div className="p-1">
-                                <h3 className="font-bold text-sm capitalize text-red-600">{report.type.replace('_', ' ')}</h3>
-                                <p className="text-xs text-gray-500">Reported by Community</p>
+                            <div className="p-2 min-w-[200px]">
+                                <h3 className="font-bold text-slate-800 text-base">{poi.name}</h3>
+                                <p className="text-xs text-slate-500 capitalize mb-2">
+                                    {poi.type.replace('-', ' ')}
+                                </p>
 
-                                <div className="mt-2 flex items-center justify-between gap-2 border-t pt-2">
-                                    <span className="text-xs font-bold text-slate-600">Still here?</span>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => {
-                                                voteReport(report.id, 'up');
-                                                if (onReportVerified) onReportVerified();
-                                            }}
-                                            className="p-1 hover:bg-green-100 rounded text-green-600"
-                                        >
-                                            <ThumbsUp className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                voteReport(report.id, 'down');
-                                                if (onReportVerified) onReportVerified();
-                                            }}
-                                            className="p-1 hover:bg-red-100 rounded text-red-600"
-                                        >
-                                            <ThumbsDown className="w-4 h-4" />
-                                        </button>
+                                {/* Fuel Price */}
+                                {priceInfo && (
+                                    <div className={`p-2 rounded-lg mb-2 ${priceInfo.isBestPrice
+                                        ? 'bg-success-50 border border-success-200'
+                                        : 'bg-slate-50 border border-slate-200'
+                                        }`}>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-slate-500">Diesel</span>
+                                            {priceInfo.isBestPrice && (
+                                                <span className="text-[10px] font-bold text-success-600 uppercase">Best Price</span>
+                                            )}
+                                        </div>
+                                        <p className={`text-xl font-bold ${priceInfo.isBestPrice ? 'text-success-600' : 'text-slate-800'}`}>
+                                            ${priceInfo.price.toFixed(2)}
+                                        </p>
                                     </div>
-                                </div>
-                                <div className="text-center mt-1">
-                                    <span className={`text-[10px] font-bold ${report.votes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {report.votes > 0 ? '+' : ''}{report.votes} Verified
-                                    </span>
-                                </div>
+                                )}
+
+                                {/* Parking Status */}
+                                {parkingInfo && (
+                                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold ${parkingInfo.status === 'Full' ? 'bg-danger-500' : 'bg-primary-500'
+                                                }`}>
+                                                P
+                                            </div>
+                                            <span className={`text-sm font-bold ${parkingInfo.status === 'Full' ? 'text-danger-600' : 'text-success-600'
+                                                }`}>
+                                                {parkingInfo.availableSpots} spots
+                                            </span>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">{parkingInfo.prediction}</span>
+                                    </div>
+                                )}
+
+                                {/* Status */}
+                                {poi.status && poi.status !== 'unknown' && (
+                                    <div className={`flex items-center gap-1.5 text-xs font-bold ${poi.status === 'open' ? 'text-success-600' : 'text-danger-600'
+                                        }`}>
+                                        <span className={`w-2 h-2 rounded-full ${poi.status === 'open' ? 'bg-success-500' : 'bg-danger-500'
+                                            }`} />
+                                        {poi.status.toUpperCase()}
+                                    </div>
+                                )}
+
+                                {/* Amenities */}
+                                {poi.amenities && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {poi.amenities.map(a => (
+                                            <span key={a} className="text-[10px] bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full font-medium">
+                                                {a}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </Popup>
                     </Marker>
-                ))
-            }
-        </MapContainer >
+                );
+            })}
+
+            {/* Community Reports */}
+            {communityReports && communityReports.map((report) => (
+                <Marker key={report.id} position={report.location} icon={getReportIcon(report.type)}>
+                    <Popup>
+                        <div className="p-2 min-w-[200px]">
+                            <h3 className="font-bold text-danger-600 capitalize text-base">
+                                {report.type.replace('_', ' ')}
+                            </h3>
+                            <p className="text-xs text-slate-500 mb-3">Reported by community</p>
+
+                            <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                                <span className="text-xs font-semibold text-slate-600">Still there?</span>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => {
+                                            voteReport(report.id, 'up');
+                                            if (onReportVerified) onReportVerified();
+                                        }}
+                                        className="p-1.5 hover:bg-success-50 rounded-lg text-success-600 transition-colors"
+                                    >
+                                        <ThumbsUp className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            voteReport(report.id, 'down');
+                                            if (onReportVerified) onReportVerified();
+                                        }}
+                                        className="p-1.5 hover:bg-danger-50 rounded-lg text-danger-600 transition-colors"
+                                    >
+                                        <ThumbsDown className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="text-center mt-2">
+                                <span className={`text-xs font-bold ${report.votes >= 0 ? 'text-success-600' : 'text-danger-600'
+                                    }`}>
+                                    {report.votes > 0 ? '+' : ''}{report.votes} votes
+                                </span>
+                            </div>
+                        </div>
+                    </Popup>
+                </Marker>
+            ))}
+        </MapContainer>
     );
 }

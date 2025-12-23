@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { Moon, Sun, Truck } from 'lucide-react';
+import { Moon, Sun, Truck, User } from 'lucide-react';
 import RouteInput from './components/RouteInput';
 import NavigationPanel from './components/NavigationPanel';
 import PoiPrompt from './components/PoiPrompt';
@@ -12,7 +12,7 @@ import { checkForWeatherAlerts, type WeatherAlert } from './services/weather';
 import { getFuelPrices, type FuelPrice } from './services/fuel';
 import { getParkingStatus, type ParkingStatus } from './services/parking';
 import { subscribeToReports, addReport, type CommunityReport } from './services/reports';
-import { AlertTriangle, User } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import VoiceInput from './components/VoiceInput';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { GamificationProvider, useGamification } from './contexts/GamificationContext';
@@ -21,6 +21,8 @@ import { Loader2 } from 'lucide-react';
 import OfflineIndicator from './components/OfflineIndicator';
 import VehicleSetupWizard from './components/VehicleSetupWizard';
 import WeighStationFeedback from './components/WeighStationFeedback';
+import Logo from './components/Logo';
+import { ToastProvider, useToast } from './components/ToastProvider';
 
 // Lazy Load Heavy Components
 const Map = lazy(() => import('./components/Map'));
@@ -29,16 +31,19 @@ const ProfilePanel = lazy(() => import('./components/ProfilePanel'));
 
 function App() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<[number, number] | undefined>(undefined);
-  // const [_routeIndex, setRouteIndex] = useState(0); // Unused
   const [activePoiPrompt, setActivePoiPrompt] = useState<POI | null>(null);
 
   // Advanced Features State
   const [currentSpeed, setCurrentSpeed] = useState(0);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('weepaa_dark_mode');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [showGamificationProfile, setShowGamificationProfile] = useState(false);
   const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
   const [fuelPrices, setFuelPrices] = useState<FuelPrice[]>([]);
@@ -53,6 +58,16 @@ function App() {
 
   // Simulation refs
   const simulationInterval = useRef<number | null>(null);
+
+  // Persist dark mode
+  useEffect(() => {
+    localStorage.setItem('weepaa_dark_mode', JSON.stringify(darkMode));
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   const handleStartNavigation = async (waypoints: string[] = [], avoidWeighStations: boolean = false) => {
     if (!vehicleSpecs) {
@@ -75,6 +90,12 @@ function App() {
       const alerts = await checkForWeatherAlerts(data.coordinates);
       setWeatherAlerts(alerts);
       if (alerts.length > 0) {
+        showToast({
+          type: 'warning',
+          title: 'Weather Alert',
+          message: alerts[0].message,
+          duration: 8000,
+        });
         speak(`Caution. ${alerts[0].message} reported on your route.`);
       }
 
@@ -83,8 +104,12 @@ function App() {
       setFuelPrices(prices);
       const bestPrice = prices.find(p => p.isBestPrice);
       if (bestPrice) {
-        // Maybe notify about savings?
-        // speak(`Best diesel price found: $${bestPrice.price}`);
+        showToast({
+          type: 'success',
+          title: 'Best Diesel Price Found',
+          message: `$${bestPrice.price.toFixed(2)} at upcoming stop`,
+          duration: 5000,
+        });
       }
 
       // Get Parking Status
@@ -102,27 +127,33 @@ function App() {
             setCurrentLocation(gpsLocation);
             console.log('GPS Location acquired:', gpsLocation);
             speak("GPS location acquired. Starting navigation.");
+            showToast({
+              type: 'success',
+              title: 'Navigation Started',
+              message: 'GPS locked. Safe travels!',
+            });
           },
           (error) => {
             console.warn('GPS location unavailable:', error);
-            // Fallback to route start point
             if (data.coordinates.length > 0) {
               setCurrentLocation(data.coordinates[0]);
-              // setRouteIndex(0);
               speak("Starting navigation. Truck route calculated.");
             }
           }
         );
       } else {
-        // No GPS available, use route start point
         if (data.coordinates.length > 0) {
           setCurrentLocation(data.coordinates[0]);
-          // setRouteIndex(0);
           speak("Starting navigation. Truck route calculated.");
         }
       }
     } catch (error) {
       console.error("Failed to calculate route", error);
+      showToast({
+        type: 'danger',
+        title: 'Route Error',
+        message: 'Failed to calculate route. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +163,6 @@ function App() {
     setIsNavigating(false);
     setRouteData(null);
     setCurrentLocation(undefined);
-    // setRouteIndex(0);
     setActivePoiPrompt(null);
     setCurrentSpeed(0);
     if (simulationInterval.current) {
@@ -140,12 +170,16 @@ function App() {
       simulationInterval.current = null;
     }
     speak("Navigation cancelled.");
+    showToast({
+      type: 'info',
+      title: 'Navigation Ended',
+      message: 'Safe travels!',
+    });
   };
 
   const handlePoiVote = (status: 'open' | 'closed' | 'unknown') => {
     if (!activePoiPrompt || !routeData) return;
 
-    // Update local state
     const updatedPois = routeData.pois.map(p =>
       p.id === activePoiPrompt.id ? { ...p, status } : p
     );
@@ -155,6 +189,7 @@ function App() {
 
     if (status !== 'unknown') {
       speak(`Thanks for reporting. Weigh station marked as ${status}.`);
+      addPoints(5, 'Weigh station report');
     }
   };
 
@@ -178,7 +213,6 @@ function App() {
     switch (command) {
       case 'find_fuel':
         speak("Searching for diesel prices along your route.");
-        // In a real app, this would trigger a new search or filter
         if (routeData) {
           getFuelPrices(routeData.pois).then(prices => {
             setFuelPrices(prices);
@@ -190,6 +224,11 @@ function App() {
         if (currentLocation) {
           addReport('accident', currentLocation, user?.uid);
           speak("Accident reported. Thank you.");
+          showToast({
+            type: 'success',
+            title: 'Report Submitted',
+            message: 'Thanks for helping the community!',
+          });
         } else {
           speak("GPS location unavailable. Cannot report accident.");
         }
@@ -212,6 +251,12 @@ function App() {
         if (routeIndex >= routeData.coordinates.length) {
           if (simulationInterval.current) clearInterval(simulationInterval.current);
           speak("You have arrived at your destination.");
+          showToast({
+            type: 'success',
+            title: 'Destination Reached! 🎉',
+            message: 'You have arrived. Great job!',
+            duration: 10000,
+          });
           setCurrentSpeed(0);
           return;
         }
@@ -219,14 +264,14 @@ function App() {
         const nextLoc = routeData.coordinates[routeIndex];
         setCurrentLocation(nextLoc);
 
-        // Simulate Speed (random between 55 and 75 mph)
+        // Simulate Speed
         const simulatedSpeed = 55 + Math.random() * 20;
         setCurrentSpeed(simulatedSpeed);
 
-        // Simple instruction trigger logic (demo only)
+        // Simple instruction trigger
         if (routeIndex === 5) speak("Head east.");
 
-        // Trigger Weigh Station Prompt at specific index
+        // Trigger Weigh Station Prompt
         if (routeIndex === 20) {
           const weighStation = routeData.pois.find(p => p.type === 'weigh-station');
           if (weighStation && (!weighStation.status || weighStation?.status === 'unknown')) {
@@ -234,7 +279,7 @@ function App() {
             speak("Approaching weigh station. Is it open?");
           }
         }
-      }, 1000); // Move every 1 second for smoother speed updates
+      }, 1000);
     }
 
     return () => {
@@ -242,27 +287,52 @@ function App() {
         clearInterval(simulationInterval.current);
       }
     };
-  }, [isNavigating, routeData]);
+  }, [isNavigating, routeData, showToast]);
 
   return (
-    <div className={`relative w-screen h-screen overflow-hidden ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      {/* Dark Mode Toggle */}
-      <button
-        onClick={() => setDarkMode(!darkMode)}
-        className="absolute top-4 right-4 z-[1000] p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg backdrop-blur-sm"
-      >
-        {darkMode ? <Sun className="w-6 h-6 text-yellow-500" /> : <Moon className="w-6 h-6 text-slate-700" />}
-      </button>
-
-      {/* Edit Vehicle Toggle */}
-      {!isNavigating && vehicleSpecs && (
-        <button
-          onClick={() => setShowVehicleSetup(true)}
-          className="absolute top-4 right-16 z-[1000] p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg backdrop-blur-sm"
-        >
-          <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-        </button>
+    <div className={`relative w-screen h-screen overflow-hidden ${darkMode ? 'dark bg-slate-900' : 'bg-slate-100'}`}>
+      {/* Weepaa Logo - shown when not navigating */}
+      {!isNavigating && (
+        <div className="absolute top-4 left-4 z-[1000]">
+          <Logo size="md" />
+        </div>
       )}
+
+      {/* Top Right Controls */}
+      <div className="absolute top-4 right-4 z-[1000] flex items-center gap-2">
+        {/* Edit Vehicle Toggle */}
+        {!isNavigating && vehicleSpecs && (
+          <button
+            onClick={() => setShowVehicleSetup(true)}
+            className="p-3 glass-panel rounded-xl hover:scale-105 transition-transform"
+            aria-label="Edit vehicle"
+          >
+            <Truck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+          </button>
+        )}
+
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="p-3 glass-panel rounded-xl hover:scale-105 transition-transform"
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {darkMode ? (
+            <Sun className="w-5 h-5 text-warning-500" />
+          ) : (
+            <Moon className="w-5 h-5 text-slate-700" />
+          )}
+        </button>
+
+        {/* Profile Button */}
+        <button
+          onClick={() => setShowGamificationProfile(true)}
+          className="p-3 glass-panel rounded-xl hover:scale-105 transition-transform"
+          aria-label="Open profile"
+        >
+          <User className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+        </button>
+      </div>
 
       {/* Vehicle Setup Wizard */}
       {showVehicleSetup && (
@@ -272,9 +342,13 @@ function App() {
             localStorage.setItem('vehicleSpecs', JSON.stringify(specs));
             setShowVehicleSetup(false);
             speak("Vehicle setup complete.");
+            showToast({
+              type: 'success',
+              title: 'Vehicle Setup Complete',
+              message: 'Your truck profile has been saved.',
+            });
           }}
           onClose={() => {
-            // Only allow closing if specs exist
             if (vehicleSpecs) {
               setShowVehicleSetup(false);
             }
@@ -288,9 +362,11 @@ function App() {
         <>
           {/* Weather Alert Banner */}
           {weatherAlerts.length > 0 && (
-            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-[1000] bg-red-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 animate-pulse">
-              <AlertTriangle className="w-6 h-6" />
-              <span className="font-bold">{weatherAlerts[0].message}</span>
+            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-[1000] animate-fade-in-up">
+              <div className="flex items-center gap-3 px-5 py-3 bg-danger-500 text-white rounded-full shadow-xl shadow-danger-500/30">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-semibold">{weatherAlerts[0].message}</span>
+              </div>
             </div>
           )}
 
@@ -312,15 +388,7 @@ function App() {
         </>
       )}
 
-      {/* Profile Button */}
-      <button
-        onClick={() => setShowGamificationProfile(true)}
-        className="fixed top-4 right-4 z-[1000] bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg hover:bg-slate-50 transition-colors"
-      >
-        <User className="w-6 h-6 text-slate-700 dark:text-slate-200" />
-      </button>
-
-      {/* Gamification Profile */}
+      {/* Gamification Profile Panel */}
       <Suspense fallback={<div />}>
         {showGamificationProfile && (
           <ProfilePanel onClose={() => setShowGamificationProfile(false)} />
@@ -346,10 +414,14 @@ function App() {
         <PoiPrompt poiName={activePoiPrompt.name} onVote={handlePoiVote} />
       )}
 
+      {/* Map */}
       <Suspense fallback={
         <div className="w-full h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary-500 blur-xl opacity-30 rounded-full animate-pulse" />
+              <Loader2 className="relative w-12 h-12 text-primary-600 animate-spin" />
+            </div>
             <p className="text-slate-600 dark:text-slate-400 font-medium">Loading Weepaa GPS...</p>
           </div>
         </div>
@@ -377,12 +449,15 @@ function App() {
   );
 }
 
+// App Wrapper with all providers
 export default function AppWrapper() {
   return (
     <AuthProvider>
       <SubscriptionProvider>
         <GamificationProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </GamificationProvider>
       </SubscriptionProvider>
     </AuthProvider>
